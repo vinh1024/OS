@@ -1,17 +1,13 @@
-#define REALTEK_VENDER_ID 0x10EC
-#define REALTEK_DEVICE_ID 0x8168
+#define INTEL_VENDER_ID 0x8168
+#define INTEL_DEVICE_ID 0x100E
 
 #include <linux/kernel.h>
-#include <linux/init.h>
 #include <linux/module.h>
 #include <linux/stddef.h>
+#include <linux/init.h>
 #include <linux/pci.h>
-
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("vinhnt");
-MODULE_DESCRIPTION("A simple detecting device");
-MODULE_VERSION("0.01");
-static int __init init_M(void){
+/*
+int init_module(void){
     struct pci_dev *pdev;
     pdev = pci_get_device(REALTEK_VENDER_ID, REALTEK_DEVICE_ID, NULL);
     if (!pdev)
@@ -20,10 +16,46 @@ static int __init init_M(void){
         printk("<l>============Device found============");
     return 0;
 }
+*/
 
-static void __exit exit_M(void){
-	printk("Goodbye");
+
+static struct pci_dev* probe_device(void)
+{
+    struct pci_dev *pdev = NULL;
+    //Ensure we are not working on a non PCI system
+    if (!pci_present()){
+        LOG_MSG("PCI not present\n");
+        return pdev;
+    }
+
+    // Look for Intel device
+    pdev = pci_get_device(INTEL_VENDER_ID, INTEL_DEVICE_ID, NULL);
+
+    if (pdev){
+        LOG_MSG("============Device found===========\n");
+        // Device found, enable it
+        if (pci_enable_device(pdev)){
+            LOG_MSG("Could not enable the device\n");
+            return NULL;
+        }else
+            LOG_MSG("Device enabled\n");
+    }else
+        LOG_MSG("============Device not found==========\n")
+
+    return pdev;
 }
 
-module_init(init_M);
-module_exit(exit_M);
+int init_module(void){
+    struct pci_dev *pdev;
+    pdev = probe_device();
+    if (!pdev)
+        return 0;
+    return 0;
+}
+
+int exit_module(void){
+    printk(KERNEL_ALERT "good bye")
+}
+
+module_init(init_module);
+module_exit(exit_module);
